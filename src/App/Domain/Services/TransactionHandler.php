@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Services;
 
+use App\Domain\Entities\Buyer;
+use App\Domain\Entities\Notification;
 use App\Domain\Entities\Transaction;
+use App\Domain\Exceptions\TransactionNotAuthorizedException;
 use App\Domain\Repositories\TransactionRepositoryInterface;
 use DateTime;
 use Exception;
+use function PHPUnit\Framework\throwException;
 
 class TransactionHandler
 {
@@ -55,7 +59,7 @@ class TransactionHandler
          * que faz a analise anti fraude, eles são trouxas né? Meu sistema não pode fazer nada pra resolver isso.
          */
         if (!$this->fraudChecker->check($transaction)) {
-            throw new Exception("Deu erro aqui.");
+            throw new TransactionNotAuthorizedException('Transação Não Autorizada');
         }
 
         /**
@@ -64,7 +68,10 @@ class TransactionHandler
          * pra saber o total de taxas tem que somar a taxa do sonserinapay com a taxa do lojista
          * mas eu não sei pra que isso serve não, só fix o que o Draco me mandou fazer
          */
-        $totalValueComTaxas = $this->taxCalculator->calculate($transaction->getInitialAmount(), $transaction->getSellerTax());
+        $totalValueWithTax = $this->taxCalculator->calculate($transaction->getInitialAmount(), $transaction->getSellerTax());
+        $taxSonserinaPay   = $this->taxCalculator->calculateTaxSonserinaPay($transaction->getInitialAmount(), $transaction->getSellerTax(), $totalValueWithTax);
+        $totalTax          = $this->taxCalculator->calculateTotalTax($taxSonserinaPay, $transaction->getSellerTax());
+
 
         /**
          * Draco: Salva a data de criação da transação
@@ -72,15 +79,45 @@ class TransactionHandler
         $transaction->setCreatedDate(new DateTime());
 
         /**
-         * Draco: Era pra notificar o cliente e o lojista né? Mas esse cara tá dando problema, com certeza
-         * é culpa do Crabbe que não fez a classe de notificação direito
+         * Draco: Salva o total Amount calculado com a taxa,
+         * A taxa do sonserinapay e o total de taxas
          */
-//        $this->notifier->notify($transaction);
-
+        $transaction->setTotalAmount($totalValueWithTax);
+        $transaction->setSlytherinPayTax($taxSonserinaPay);
+        $transaction->setTotalTax($totalTax);
         /**
          * Crabbe: Aqui salva a transação
          * Draco: As vezes a gente da erro na hora de salvar ai a gente já mandou notificação pro cliente, mas paciência né?
          */
-        return $this->repository->save($transaction);
+        $this->repository->save($transaction);
+
+        /**
+         * Draco: Era pra notificar o cliente e o lojista né? Mas esse cara tá dando problema, com certeza
+         * é culpa do Crabbe que não fez a classe de notificação direito
+         */
+
+        $this->sendNotification($transaction);
+        return $transaction;
+
+    }
+
+    public function sendNotification(Transaction $transaction)
+    {
+
+        $recipients = [
+            $transaction->getBuyer(),
+            $transaction->getSeller()
+        ];
+
+        try {
+            foreach ($recipients as $recipient) {
+                $this->notifier->notify(new Notification($recipient, "Transação aprovada"));
+            }
+        } catch (Exception $exception) {
+            throw new Exception('Notification Failed');
+        }
+
+
+
     }
 }

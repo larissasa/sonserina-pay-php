@@ -30,8 +30,8 @@ class TaxCalculatorTest extends TestCase
             ->method('getIncrementValue')
             ->willReturn($clientIncrementReturn);
         $service = new TaxCalculator($client);
-        $service->calculate($amount, $tax);
-        $received = $expected;
+        $received = $service->calculate($amount, $tax);
+//        $received = $expected;
         $this->assertEquals($expected, $received);
     }
 
@@ -42,5 +42,50 @@ class TaxCalculatorTest extends TestCase
             'igual que o esperado para taxa dinamica' => [0.0, 100, 2, 108.14, 0],
             'maior que o esperado para taxa dinamica' => [16.0, 100, 7, 123, 1],
         ];
+    }
+
+    /**
+     * @dataProvider taxSonserinaPayProvider
+     */
+    public function testCalculateTaxSonserinaPayFunction(float $initialAmount, float $sellerTax, float $totalValueWithTax, float $expected): void
+    {
+        $client = $this->createMock(TaxManagerClientInterface::class);
+        $service = new TaxCalculator($client);
+
+        $received = $service->calculateTaxSonserinaPay($initialAmount, $sellerTax, $totalValueWithTax);
+        $this->assertEquals($received, $expected);
+
+    }
+
+    public function taxSonserinaPayProvider(): array
+    {
+        return [
+            'teste 1' => [10, 2, 1, 11],
+            'teste 2' => [50, 15, 2, 90],
+            'teste 3' => [26, 9, 7, 28],
+        ];
+    }
+
+    /**
+     * @dataProvider totalTaxProvider
+     */
+    public function testCalculateTotalTaxFunction(float $taxSonserinaPay, float $sellerTax, float $expected): void
+    {
+        $client = $this->createMock(TaxManagerClientInterface::class);
+        $service = new TaxCalculator($client);
+
+        $received = $service->calculateTaxSonserinaPay($taxSonserinaPay, $sellerTax);
+        $this->assertEquals($received, $expected);
+
+    }
+
+    public function totalTaxProvider(): array
+    {
+        return [
+            'teste 1' => [23, 5, 28],
+            'teste 2' => [12, 10, 22],
+            'teste 3' => [5, 50, 55],
+        ];
+
     }
 }

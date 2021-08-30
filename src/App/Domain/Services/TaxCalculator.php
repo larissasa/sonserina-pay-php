@@ -46,4 +46,25 @@ class TaxCalculator
     {
         return $amount * $this->getRealTaxValue($tax);
     }
+
+    /**
+     * @param float $initialAmount
+     * @param float $sellerTax
+     * @param float $totalValueWithTax
+     * @return float
+     */
+    public function calculateTaxSonserinaPay(float $initialAmount, float $sellerTax, float $totalValueWithTax)
+    {
+        return ($initialAmount +  $sellerTax) - $totalValueWithTax;
+    }
+
+    /**
+     * @param float $taxSonserinaPay
+     * @param float $sellerTax
+     * @return float
+     */
+    public function calculateTotalTax(float $taxSonserinaPay, float $sellerTax)
+    {
+        return $taxSonserinaPay + $sellerTax;
+    }
 }
