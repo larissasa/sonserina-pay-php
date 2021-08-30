@@ -15,7 +15,7 @@ class MinistryOfMagicChecker implements CheckerInterface
         $url = 'http://run.mocky.io/v3/8fafdd68-a090-496f-8c9a-3442cf30dae6';
 
         $service = $apiService->autorizeService($url);
-        return $service['message'] == 'Autorizado';
+        return $service['message'] === 'Autorizado';
 
     }
 }

@@ -16,7 +16,7 @@ class GringottsWizardingBankChecker implements CheckerInterface
             $url = 'https://run.mocky.io/v3/9f9ea9d3-a2e0-4573-97d0-924618381272';
 
             $service = $apiService->autorizeService($url);
-            return $service['message'] == 'Autorizado';
+            return $service['message'] === 'Autorizado';
 
         }
     }
